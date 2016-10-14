@@ -8,9 +8,10 @@ type Props = {
   searchTerm: string;
   filter: (searchTerm: string, dataSource: Array<Object>) => Array<Object>;
   onChange: (searchTerm: string) => void;
-  onAcceptSelection: (value: string, option: Object) => void;
+  onAcceptSelection: (option?: Object) => void;
   placeholder: string;
   maxAutocompletionOptions: number;
+  maxHeight: number;
 }
 
 const initialState = {
@@ -48,12 +49,11 @@ export default class Autocomplete extends React.Component {
           ? state.activeIndex
           : state.activeIndex - 1
     })),
-    Enter: _ => this.handleAcceptSelection(this.state.activeIndex),
-    Tab: (event) => {
-      if (event.shiftKey) this.keyHandlers.ArrowUp(event);
-      else                this.keyHandlers.ArrowDown(event);
+    Enter: _ => {
+      if (isEmpty(this.filteredData())) return;
+      this.handleAcceptSelection(this.state.activeIndex);
     },
-    Escape: _ => this.input.blur(),
+    Escape: _ => this.closePopover(),
   };
 
   // Thought: Should our filter actually be the iteratee applied
@@ -71,33 +71,63 @@ export default class Autocomplete extends React.Component {
   handleAcceptSelection = (idx) => {
     const selectedOption = this.filteredData()[idx];
     this.props.onAcceptSelection(selectedOption);
+    this.closePopover();
+  }
+
+  closePopover = () => {
     this.resetState();
     this.input.blur();
   }
 
   handleOptionMouseDown = (idx) => this.handleAcceptSelection(idx);
 
+  toggleFocus = (event) => {
+    event.preventDefault();
+    if (!this.state.isFocused) {
+      this.input.focus();
+    } else {
+      this.closePopover();
+    }
+  }
+
+  handleBlur = () => {
+    this.resetState();
+    this.props.onChange('');
+  }
+
   render() {
     const filteredData = this.filteredData();
 
     return (
       <div className={css(styles.root)}>
-        <input
-          ref={node => this.input = node}
-          value={this.props.searchTerm}
-          onChange={event => this.props.onChange(event.target.value)}
-          onFocus={_ => this.setState({ isFocused: true })}
-          onBlur={_ => this.resetState()}
-          onKeyDown={this.handleKeyDown}
-          placeholder={this.props.placeholder}
-          className={css(
-            styles.input,
-            this.state.isFocused && styles.inputFocused,
+        <div style={{ position: 'relative' }}>
+          <input
+            ref={node => this.input = node}
+            value={this.props.searchTerm}
+            onChange={event => this.props.onChange(event.target.value)}
+            onFocus={_ => this.setState({ isFocused: true })}
+            onBlur={this.handleBlur}
+            onKeyDown={this.handleKeyDown}
+            placeholder={this.props.placeholder}
+            className={css(
+              styles.input,
+              this.state.isFocused && styles.inputFocused,
+              (this.state.isFocused && isEmpty(filteredData)) && styles.noResults,
+            )}
+          />
+          {!(this.state.isFocused && isEmpty(filteredData)) && (
+            <div
+              onMouseDown={this.toggleFocus}
+              className={css(styles.arrow)}
+            />
           )}
-        />
+        </div>
       {this.state.isFocused && !isEmpty(filteredData) && (
         <div className={css(styles.popover)}>
-          <div className={css(styles.list)}>
+          <div
+            className={css(styles.list)}
+            style={this.props.maxHeight ? { maxHeight: this.props.maxHeight } : {}}
+          >
             {filteredData.map((data, idx) => (
               <div
                 key={data.value}

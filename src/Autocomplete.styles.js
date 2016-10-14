@@ -13,10 +13,26 @@ const styles = StyleSheet.create({
     display: 'block',
     width: '100%',
     transition: 'all 150ms ease',
+    cursor: 'default',
   },
   inputFocused: {
     border: '1px solid rgb(0, 132, 255)',
     // boxShadow: '0 0 0 3px rgba(0, 126, 255, 0.1)',
+  },
+  noResults: {
+    borderColor: '#e53838',
+  },
+  arrow: {
+    borderColor: '#999 transparent transparent',
+    borderStyle: 'solid',
+    borderWidth: '5px 5px 2.5px',
+    width: 0,
+    height: 0,
+    position: 'absolute',
+    top: '50%',
+    marginTop: -1.5,
+    right: 12,
+    cursor: 'default',
   },
   popover: {
     background: '#fff',
@@ -29,6 +45,7 @@ const styles = StyleSheet.create({
   },
   list: {
     padding: '5px 0',
+    overflowY: 'auto',
   },
   listItem: {
     padding: 10,
