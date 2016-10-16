@@ -22,16 +22,16 @@ class App extends Component {
 
   render() {
     return (
-      <div style={{ padding: 20 }}>
+      <div style={{ padding: 20, maxWidth: 300 }}>
         <Autocomplete
           dataSource={this.state.list}
           searchTerm={this.state.searchTerm}
           filter={(term, data) =>
             data.filter(item => item.value.includes(term))}
           onChange={searchTerm => this.setState({ searchTerm })}
-          onAcceptSelection={(option) => {
-            this.setState({ searchTerm: option ? option.value : '' });
-          }}
+          onOptionChosen={(option) => this.setState({
+            searchTerm: option ? option.value : ''
+          })}
           placeholder="Select a hint... (type to narrow down the list of options)"
           // maxAutocompletionOptions={4}
           maxHeight={200}
