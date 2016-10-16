@@ -14,15 +14,22 @@ type Props = {
   maxHeight: number;
 }
 
-const initialState = {
+type State = {
+  isFocused: boolean;
+  activeIndex?: number;
+}
+
+const initialState: State = {
   isFocused: false,
   activeIndex: undefined,
 };
 
 export default class Autocomplete extends React.Component {
   props: Props;
+  state: State;
   lastChosenOption: Object;
   shouldDiscardNextBlurEvent: boolean;
+  input: HTMLElement;
 
   state = {
     ...initialState,
@@ -43,26 +50,28 @@ export default class Autocomplete extends React.Component {
     event.preventDefault();
   }
 
+  // :: { [keyName: string]: function }
   keyHandlers = {
-    ArrowDown: _ => this.setState(state => ({
-      activeIndex: state.activeIndex === undefined
-        ? 0
-        : state.activeIndex === lastIndex(this.getOptions())
-          ? state.activeIndex
-          : state.activeIndex + 1
-    })),
-    ArrowUp: _ => this.setState(state => ({
-      activeIndex: (state.activeIndex === undefined)
-        ? undefined
-        : state.activeIndex === 0
-          ? state.activeIndex
-          : state.activeIndex - 1
-    })),
-    Enter: _ => {
+    ArrowDown: () => this.setState(state => {
+      const clampIndex = clamp(0, lastIndex(this.getOptions()));
+      return {
+        activeIndex: (state.activeIndex === undefined) ?
+          0 :
+          clampIndex(state.activeIndex + 1)
+      };
+    }),
+    ArrowUp: () => this.setState(state => {
+      const clampIndex = clamp(0, lastIndex(this.getOptions()));
+      return {
+        activeIndex: (state.activeIndex === undefined) ? undefined
+          : clampIndex(state.activeIndex - 1)
+      };
+    }),
+    Enter: () => {
       if (isEmpty(this.getFilteredData(this.props))) return;
       this.handleOptionChosen(this.state.activeIndex);
     },
-    Escape: _ => {
+    Escape: () => {
       if (this.lastChosenOption) {
         this.props.onChange(this.lastChosenOption.value);
       } else {
@@ -147,7 +156,7 @@ export default class Autocomplete extends React.Component {
 
     return (
       <div className={css(styles.root)}>
-        <div style={{ position: 'relative' }}>
+        <div className={css(styles.inputWrapper)}>
           <input
             ref={node => this.input = node}
             value={this.props.searchTerm}
@@ -168,16 +177,15 @@ export default class Autocomplete extends React.Component {
             onMouseDown={this.toggleFocus}
           >
             <svg
-              width="10" height="5" viewBox="0 0 10 5"
-              style={{
-                transition: 'transform 250ms ease-out, color 100ms ease-out',
-                display: 'block',
-                transform: this.state.isFocused ? 'rotateZ(180deg)' : '' }}
+              width="10"
+              height="5"
+              viewBox="0 0 10 5"
+              className={css(
+                styles.arrow,
+                this.state.isFocused && styles.arrowOpen
+              )}
               >
-              <polygon
-                fill="currentColor"
-                points="0,0 10,0 5,5 0,0"
-              />
+              <polygon fill="currentColor" points="0,0 10,0 5,5 0,0" />
             </svg>
           </div>
           )}
@@ -209,11 +217,12 @@ export default class Autocomplete extends React.Component {
   }
 }
 
-// Helpers
+// :: T[] -> boolean
 function isEmpty(list) {
   return list.length === 0;
 }
 
+// :: T[] -> number
 function lastIndex(list) {
   return (list.length > 0) ?
     list.length - 1 :
@@ -223,15 +232,11 @@ function lastIndex(list) {
 // :: (number, T[]) -> T[]
 function take(n, xs) {
   if (n < 1 || isEmpty(xs)) return [];
-  return [head(xs), ...take(n - 1, tail(xs))];
+  return xs.slice(0, n);
 }
 
-// :: T[] -> T | undefined
-function head(xs) {
-  return xs[0];
-}
-
-// :: T[] -> T[]
-function tail(xs) {
-  return xs.slice(1);
+// :: (number, number) -> number -> number
+// Produces a function whose argument will be clamped to the range [low, hi]
+function clamp(low, hi) {
+  return (n) => Math.min(Math.max(low, n), hi);
 }

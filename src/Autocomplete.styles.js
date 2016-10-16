@@ -4,6 +4,9 @@ const styles = StyleSheet.create({
   root: {
     position: 'relative',
   },
+  inputWrapper: {
+    position: 'relative',
+  },
   input: {
     outline: 'none',
     border: '1px solid rgba(0, 0, 0, 0.3)',
@@ -17,17 +20,11 @@ const styles = StyleSheet.create({
   },
   inputFocused: {
     border: '1px solid rgb(0, 132, 255)',
-    // boxShadow: '0 0 0 3px rgba(0, 126, 255, 0.1)',
   },
   noResults: {
     borderColor: '#e53838',
   },
   arrowWrapper: {
-    // borderColor: '#999 transparent transparent',
-    // borderStyle: 'solid',
-    // borderWidth: '5px 5px 2.5px',
-    // width: 0,
-    // height: 0,
     position: 'absolute',
     top: 0,
     right: 0,
@@ -41,6 +38,13 @@ const styles = StyleSheet.create({
     ':hover': {
       color: '#333',
     }
+  },
+  arrow: {
+    transition: 'transform 250ms ease-out, color 100ms ease-out',
+    display: 'block',
+  },
+  arrowOpen: {
+    transform:  'rotateZ(180deg)',
   },
   popover: {
     background: '#fff',
