@@ -20,6 +20,7 @@ const styles = StyleSheet.create({
   },
   inputFocused: {
     border: '1px solid rgb(0, 132, 255)',
+    cursor: 'text',
   },
   noResults: {
     borderColor: '#e53838',
