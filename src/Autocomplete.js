@@ -1,3 +1,5 @@
+/* @flow */
+
 import React from 'react';
 import { css } from 'aphrodite';
 
@@ -24,102 +26,118 @@ const initialState: State = {
   activeIndex: undefined,
 };
 
-export default class Autocomplete extends React.Component {
+export default class Autocomplete extends React.Component<void, Props, State> {
   props: Props;
   state: State;
+
+  // Custom instance properties
   lastChosenOption: Object;
   shouldDiscardNextBlurEvent: boolean;
+  keyHandlers: { [keyName: string]: (event: SyntheticEvent) => void };
   input: HTMLElement;
 
-  state = {
-    ...initialState,
-  };
+  // Bound event handlers
+  handleKeyDown: (event: SyntheticKeyboardEvent) => void;
+  toggleFocus: (event: SyntheticEvent) => void;
+  handleBlur: () => void;
+  handleFocus: () => void;
 
-  componentWillReceiveProps(nextProps) {
+  constructor(props: Props) {
+    super(props);
+
+    this.state = {
+      ...initialState,
+    };
+
+    this.keyHandlers = {
+      ArrowDown: () => this.setState(state => {
+        const clampIndex = clamp(0, lastIndex(this.getOptions()));
+        return {
+          activeIndex: (state.activeIndex === undefined) ?
+            0 :
+            clampIndex(state.activeIndex + 1)
+        };
+      }),
+      ArrowUp: () => this.setState(state => {
+        const clampIndex = clamp(0, lastIndex(this.getOptions()));
+        return {
+          activeIndex: (state.activeIndex === undefined) ? undefined
+            : clampIndex(state.activeIndex - 1)
+        };
+      }),
+      Enter: () => {
+        if (isEmpty(this.getFilteredData(this.props))) return;
+        if (this.state.activeIndex === undefined) return;
+        this.handleOptionChosen(this.state.activeIndex);
+      },
+      Escape: () => {
+        if (this.lastChosenOption) {
+          this.props.onChange(this.lastChosenOption.value);
+        } else {
+          this.props.onChange('');
+        }
+
+        this.shouldDiscardNextBlurEvent = true;
+        this.closePopover()
+      },
+    };
+
+    this.handleKeyDown = this.handleKeyDown.bind(this);
+    this.toggleFocus = this.toggleFocus.bind(this);
+    this.handleBlur = this.handleBlur.bind(this);
+    this.handleFocus = this.handleFocus.bind(this);
+  }
+
+  componentWillReceiveProps(nextProps: Props) {
     const nextFilteredData = this.getFilteredData(nextProps);
     this.setState({ activeIndex: isEmpty(nextFilteredData) ? undefined : 0 });
   }
 
-  resetState = () => this.setState({ ...initialState })
-
-  handleKeyDown = event => {
-    const handler = this.keyHandlers[event.key];
-    if (!handler) return;
-
-    handler(event);
-    event.preventDefault();
+  resetState() {
+    this.setState({ ...initialState });
   }
 
-  // :: { [keyName: string]: function }
-  keyHandlers = {
-    ArrowDown: () => this.setState(state => {
-      const clampIndex = clamp(0, lastIndex(this.getOptions()));
-      return {
-        activeIndex: (state.activeIndex === undefined) ?
-          0 :
-          clampIndex(state.activeIndex + 1)
-      };
-    }),
-    ArrowUp: () => this.setState(state => {
-      const clampIndex = clamp(0, lastIndex(this.getOptions()));
-      return {
-        activeIndex: (state.activeIndex === undefined) ? undefined
-          : clampIndex(state.activeIndex - 1)
-      };
-    }),
-    Enter: () => {
-      if (isEmpty(this.getFilteredData(this.props))) return;
-      this.handleOptionChosen(this.state.activeIndex);
-    },
-    Escape: () => {
-      if (this.lastChosenOption) {
-        this.props.onChange(this.lastChosenOption.value);
-      } else {
-        this.props.onChange('');
-      }
+  handleKeyDown(event: SyntheticKeyboardEvent) {
+    const handler = this.keyHandlers[event.key];
+    if (!handler) return;
+    event.preventDefault();
+    handler(event);
+  }
 
-      this.shouldDiscardNextBlurEvent = true;
-      this.closePopover()
-    },
-  };
+  getFilteredData(props: Props) {
+    return props.filter(props.searchTerm, props.dataSource);
+  }
 
-  filteredData = () =>
-    take(this.props.maxAutocompletionOptions, this.props.filter(
-      this.props.searchTerm,
-      this.props.dataSource,
-    ))
+  // Produces the subset of the data source that should populate the dropdown.
+  getOptions() {
+    return take(
+      this.props.maxAutocompletionOptions,
+      this.getFilteredData(this.props),
+    );
+  }
 
-  getFilteredData = (props) => props.filter(props.searchTerm, props.dataSource)
-
-  getOptions = () => take(
-    this.props.maxAutocompletionOptions,
-    this.getFilteredData(this.props),
-  )
-
-  activateOption = (index) => {
+  activateOption(index: number) {
     this.setState({ activeIndex: index });
   }
 
-  handleOptionChosen = (idx) => {
-    // const selectedOption = this.filteredData()[idx];
+  handleOptionChosen(idx: number) {
     const selectedOption = this.getFilteredData(this.props)[idx];
-
-
     this.lastChosenOption = selectedOption;
     this.shouldDiscardNextBlurEvent = true;
-
     this.props.onOptionChosen(selectedOption);
     this.closePopover();
   }
 
-  closePopover = () => {
+  closePopover() {
     this.resetState();
     this.input.blur();
   }
 
-  handleOptionMouseDown = (idx) => this.handleOptionChosen(idx);
+  handleOptionMouseDown(idx: number) {
+    this.handleOptionChosen(idx);
+  }
 
-  toggleFocus = (event) => {
+  toggleFocus(event: SyntheticEvent) {
     event.preventDefault();
     if (!this.state.isFocused) {
       this.input.focus();
@@ -128,7 +146,7 @@ export default class Autocomplete extends React.Component {
     }
   }
 
-  handleBlur = (event) => {
+  handleBlur() {
     if (this.shouldDiscardNextBlurEvent) {
       this.shouldDiscardNextBlurEvent = false;
       return;
@@ -143,7 +161,7 @@ export default class Autocomplete extends React.Component {
     }
   }
 
-  handleFocus = () => {
+  handleFocus() {
     const filteredData = this.getFilteredData(this.props);
     this.setState({
       isFocused: true,
